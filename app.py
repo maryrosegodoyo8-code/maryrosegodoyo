@@ -8,68 +8,47 @@ students = [
     {"id": 2, "name": "Maria", "grade": 90, "section": "Stallman"}
 ]
 
-# HOME PAGE
+# Home Page
 @app.route('/')
 def home():
     return redirect(url_for('list_students'))
 
-
-# VIEW STUDENTS
+# View All Students
 @app.route('/students')
 def list_students():
-
     html = """
     <h2>Student List</h2>
-
     <a href="/add_student_form">Add Student</a><br><br>
-
     <ul>
     {% for s in students %}
         <li>
-        ID: {{s.id}} - {{s.name}}
-        (Grade: {{s.grade}}, Section: {{s.section}})
+        ID: {{s.id}} - {{s.name}} (Grade: {{s.grade}}, Section: {{s.section}})
         [<a href="/edit_student/{{s.id}}">Edit</a>]
         </li>
     {% endfor %}
     </ul>
     """
-
     return render_template_string(html, students=students)
 
-
-# ADD STUDENT FORM
+# Add Student Form
 @app.route('/add_student_form')
 def add_student_form():
-
     html = """
     <h2>Add New Student</h2>
-
     <form action="/add_student" method="POST">
-
-    Name:
-    <input type="text" name="name" required><br><br>
-
-    Grade:
-    <input type="number" name="grade" required><br><br>
-
-    Section:
-    <input type="text" name="section" required><br><br>
-
-    <button type="submit">Add Student</button>
-
+        Name: <input type="text" name="name" required><br><br>
+        Grade: <input type="number" name="grade" required><br><br>
+        Section: <input type="text" name="section" required><br><br>
+        <button type="submit">Add Student</button>
     </form>
-
     <br>
     <a href="/students">Back</a>
     """
-
     return render_template_string(html)
 
-
-# ADD STUDENT (POST)
+# Add Student
 @app.route('/add_student', methods=['POST'])
 def add_student():
-
     name = request.form.get("name")
     grade = int(request.form.get("grade"))
     section = request.form.get("section")
@@ -87,8 +66,7 @@ def add_student():
 
     return redirect(url_for('list_students'))
 
-
-# EDIT STUDENT
+# Edit Student
 @app.route('/edit_student/<int:id>', methods=['GET', 'POST'])
 def edit_student(id):
 
@@ -98,7 +76,6 @@ def edit_student(id):
         return "Student not found", 404
 
     if request.method == 'POST':
-
         student["name"] = request.form["name"]
         student["grade"] = int(request.form["grade"])
         student["section"] = request.form["section"]
@@ -107,34 +84,22 @@ def edit_student(id):
 
     html = """
     <h2>Edit Student</h2>
-
     <form method="POST">
-
-    Name:
-    <input type="text" name="name" value="{{student.name}}"><br><br>
-
-    Grade:
-    <input type="number" name="grade" value="{{student.grade}}"><br><br>
-
-    Section:
-    <input type="text" name="section" value="{{student.section}}"><br><br>
-
-    <button type="submit">Update</button>
-
+        Name: <input type="text" name="name" value="{{student.name}}"><br><br>
+        Grade: <input type="number" name="grade" value="{{student.grade}}"><br><br>
+        Section: <input type="text" name="section" value="{{student.section}}"><br><br>
+        <button type="submit">Update</button>
     </form>
-
     <br>
-    <a href="/students">Back</a>
+    <a href="/students">Back to List</a>
     """
 
     return render_template_string(html, student=student)
 
-
-# API VIEW (JSON)
+# API Output (JSON)
 @app.route('/api/students')
 def api_students():
     return jsonify(students)
-
 
 if __name__ == '__main__':
     app.run(debug=True)
