@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, render_template_string, redirect, url_for
+from flask import Flask, request, render_template_string, redirect, url_for, jsonify
 
 app = Flask(__name__)
 
@@ -7,99 +7,41 @@ students = [
     {"id": 2, "name": "Maria", "grade": 90, "section": "Stallman"}
 ]
 
-# HOME PAGE
+# DASHBOARD
 @app.route('/')
 def home():
-    html = """
-    <html>
-    <head>
-    <title>Student Dashboard</title>
-    <style>
 
-    body{
-        font-family: Arial;
-        background: linear-gradient(135deg,#1d2671,#c33764);
-        color:white;
-        text-align:center;
-        margin:0;
-    }
+    search = request.args.get("search")
+    filtered_students = students
 
-    header{
-        padding:20px;
-        font-size:30px;
-        font-weight:bold;
-        background:rgba(0,0,0,0.2);
-    }
-
-    .container{
-        margin:40px auto;
-        width:80%;
-        background:white;
-        color:black;
-        padding:30px;
-        border-radius:10px;
-        box-shadow:0 10px 20px rgba(0,0,0,0.2);
-    }
-
-    a{
-        text-decoration:none;
-        padding:10px 20px;
-        background:#3498db;
-        color:white;
-        border-radius:5px;
-        margin:10px;
-        display:inline-block;
-    }
-
-    a:hover{
-        background:#2980b9;
-    }
-
-    </style>
-    </head>
-
-    <body>
-
-    <header>Student Management API</header>
-
-    <div class="container">
-    <h2>Welcome to the Student Dashboard</h2>
-
-    <a href="/students_page">View Students</a>
-    <a href="/add_student_form">Add Student</a>
-
-    </div>
-
-    </body>
-    </html>
-    """
-    return render_template_string(html)
-
-
-# STUDENTS TABLE PAGE
-@app.route('/students_page')
-def students_page():
+    if search:
+        filtered_students = [s for s in students if search.lower() in s["name"].lower()]
 
     rows = ""
-    for s in students:
+
+    for s in filtered_students:
         rows += f"""
         <tr>
-            <td>{s['id']}</td>
-            <td>{s['name']}</td>
-            <td>{s['grade']}</td>
-            <td>{s['section']}</td>
+        <td>{s['id']}</td>
+        <td>{s['name']}</td>
+        <td>{s['grade']}</td>
+        <td>{s['section']}</td>
+        <td>
+        <a href="/edit/{s['id']}">Edit</a>
+        <a href="/delete/{s['id']}">Delete</a>
+        </td>
         </tr>
         """
 
     html = f"""
     <html>
     <head>
-    <title>Students List</title>
+    <title>Student Management System</title>
 
     <style>
 
     body {{
-        font-family:Arial;
+        font-family: Arial;
         background:#f4f6f9;
         text-align:center;
     }}
@@ -108,20 +50,18 @@ def students_page():
         background:#2c3e50;
         color:white;
         padding:20px;
-        margin:0;
     }}
 
     table {{
-        margin:40px auto;
+        width:80%;
+        margin:20px auto;
         border-collapse:collapse;
-        width:70%;
         background:white;
-        box-shadow:0 5px 10px rgba(0,0,0,0.2);
     }}
 
     th,td {{
         padding:12px;
-        border-bottom:1px solid #ddd;
+        border:1px solid #ddd;
     }}
 
     th {{
@@ -129,25 +69,52 @@ def students_page():
         color:white;
     }}
 
-    tr:hover {{
-        background:#f1f1f1;
-    }}
-
     a {{
         text-decoration:none;
-        padding:10px 15px;
-        background:#27ae60;
+        padding:6px 12px;
         color:white;
-        border-radius:5px;
+        border-radius:4px;
+    }}
+
+    a[href*="edit"] {{
+        background:#27ae60;
+    }}
+
+    a[href*="delete"] {{
+        background:#e74c3c;
+    }}
+
+    .add {{
+        background:#3498db;
+        padding:10px 20px;
+        margin:10px;
+        display:inline-block;
+    }}
+
+    input {{
+        padding:8px;
+        width:200px;
+    }}
+
+    button {{
+        padding:8px 12px;
     }}
 
     </style>
-
     </head>
 
     <body>
 
-    <h1>Students List</h1>
+    <h1>Student Management System</h1>
+
+    <form method="GET">
+    <input type="text" name="search" placeholder="Search student">
+    <button type="submit">Search</button>
+    </form>
+
+    <br>
+
+    <a class="add" href="/add">Add Student</a>
 
     <table>
 
@@ -156,13 +123,20 @@ def students_page():
     <th>Name</th>
     <th>Grade</th>
     <th>Section</th>
+    <th>Action</th>
     </tr>
 
     {rows}
 
     </table>
 
-    <a href="/">Back to Dashboard</a>
+    <br>
+
+    <h3>Analytics</h3>
+
+    <a class="add" href="/average">Average Grade</a>
+    <a class="add" href="/pass_fail">Pass / Fail Count</a>
+    <a class="add" href="/performance">Performance Summary</a>
 
     </body>
     </html>
@@ -171,74 +145,40 @@ def students_page():
     return render_template_string(html)
 
 
-# ADD STUDENT FORM
-@app.route('/add_student_form')
-def form():
+# ADD STUDENT
+@app.route('/add', methods=['GET','POST'])
+def add():
+
+    if request.method == "POST":
+
+        name = request.form["name"]
+        grade = request.form["grade"]
+        section = request.form["section"]
+
+        new_student = {
+            "id": len(students) + 1,
+            "name": name,
+            "grade": int(grade),
+            "section": section
+        }
+
+        students.append(new_student)
+
+        return redirect(url_for("home"))
 
     html = """
-    <html>
-    <head>
-    <title>Add Student</title>
-
-    <style>
-
-    body{
-        font-family:Arial;
-        background:linear-gradient(135deg,#2c3e50,#4ca1af);
-        text-align:center;
-        color:white;
-    }
-
-    .form-box{
-        background:white;
-        color:black;
-        width:400px;
-        margin:80px auto;
-        padding:30px;
-        border-radius:10px;
-        box-shadow:0 10px 20px rgba(0,0,0,0.3);
-    }
-
-    input{
-        width:90%;
-        padding:10px;
-        margin:10px;
-        border:1px solid #ccc;
-        border-radius:5px;
-    }
-
-    button{
-        padding:10px 20px;
-        background:#3498db;
-        border:none;
-        color:white;
-        border-radius:5px;
-        cursor:pointer;
-    }
-
-    button:hover{
-        background:#2980b9;
-    }
-
-    </style>
-
-    </head>
-
-    <body>
-
-    <div class="form-box">
-
     <h2>Add Student</h2>
 
-    <form action="/add_student" method="POST">
+    <form method="POST">
 
-    <input type="text" name="name" placeholder="Student Name" required>
+    Name:<br>
+    <input type="text" name="name"><br><br>
 
-    <input type="number" name="grade" placeholder="Grade" required>
+    Grade:<br>
+    <input type="number" name="grade"><br><br>
 
-    <input type="text" name="section" placeholder="Section" required>
-
-    <br><br>
+    Section:<br>
+    <input type="text" name="section"><br><br>
 
     <button type="submit">Add Student</button>
 
@@ -246,40 +186,114 @@ def form():
 
     <br>
     <a href="/">Back</a>
-
-    </div>
-
-    </body>
-    </html>
     """
 
     return render_template_string(html)
 
 
-# ADD STUDENT FUNCTION
-@app.route('/add_student', methods=['POST'])
-def add_student():
+# EDIT STUDENT
+@app.route('/edit/<int:id>')
+def edit(id):
 
-    name = request.form.get("name")
-    grade = int(request.form.get("grade"))
-    section = request.form.get("section")
+    student = None
 
-    new_student = {
-        "id": len(students) + 1,
-        "name": name,
-        "grade": grade,
-        "section": section
-    }
+    for s in students:
+        if s["id"] == id:
+            student = s
 
-    students.append(new_student)
+    html = f"""
+    <h2>Edit Student</h2>
 
-    return redirect(url_for('students_page'))
+    <form action="/update/{id}" method="POST">
+
+    Name:<br>
+    <input type="text" name="name" value="{student['name']}"><br><br>
+
+    Grade:<br>
+    <input type="number" name="grade" value="{student['grade']}"><br><br>
+
+    Section:<br>
+    <input type="text" name="section" value="{student['section']}"><br><br>
+
+    <button type="submit">Update Student</button>
+
+    </form>
+
+    <br>
+    <a href="/">Back</a>
+    """
+
+    return render_template_string(html)
 
 
-# API JSON
-@app.route('/students')
-def students_list():
-    return jsonify(students)
+# UPDATE STUDENT
+@app.route('/update/<int:id>', methods=['POST'])
+def update(id):
+
+    for s in students:
+        if s["id"] == id:
+            s["name"] = request.form["name"]
+            s["grade"] = int(request.form["grade"])
+            s["section"] = request.form["section"]
+
+    return redirect(url_for("home"))
+
+
+# DELETE STUDENT
+@app.route('/delete/<int:id>')
+def delete(id):
+
+    global students
+    students = [s for s in students if s["id"] != id]
+
+    return redirect(url_for("home"))
+
+
+# AVERAGE GRADE
+@app.route('/average')
+def average():
+
+    total = sum(s["grade"] for s in students)
+    count = len(students)
+
+    avg = total / count if count > 0 else 0
+
+    return jsonify({
+        "average_grade": round(avg,2),
+        "total_students": count
+    })
+
+
+# PASS FAIL COUNT
+@app.route('/pass_fail')
+def pass_fail():
+
+    passed = len([s for s in students if s["grade"] >= 75])
+    failed = len([s for s in students if s["grade"] < 75])
+
+    return jsonify({
+        "passed_students": passed,
+        "failed_students": failed
+    })
+
+
+# PERFORMANCE SUMMARY
+@app.route('/performance')
+def performance():
+
+    total = len(students)
+
+    avg = sum(s["grade"] for s in students) / total if total > 0 else 0
+
+    passed = len([s for s in students if s["grade"] >= 75])
+    failed = len([s for s in students if s["grade"] < 75])
+
+    return jsonify({
+        "total_students": total,
+        "average_grade": round(avg,2),
+        "passed_students": passed,
+        "failed_students": failed
+    })
 
 
 if __name__ == "__main__":
